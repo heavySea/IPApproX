@@ -140,9 +140,24 @@ def get_ips_list_yml(server="git@github.com", group='pulp-platform', name='pulpi
             except subprocess.CalledProcessError:
                 rawcontent_failed = True
             ips_list_yml = ips_list_yml.decode(sys.stdout.encoding)
+        if "gitlab" in server:
+            if "tags/" in commit:
+                commit = commit[5:]
+            if verbose:
+                print("   Fetching ips_list.yml from %s/%s/%s/-/raw/%s/ips_list.yml" % (server, group, name, commit))
+            cmd = "curl %s/%s/%s/-/raw/%s/ips_list.yml" % (server, group, name, commit)
+            try:
+                curl = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=devnull)
+                cmd = "cat"
+                ips_list_yml = subprocess.check_output(cmd.split(), stdin=curl.stdout, stderr=devnull)
+                out = curl.communicate()[0]
+            except subprocess.CalledProcessError:
+                rawcontent_failed = True
+            ips_list_yml = ips_list_yml.decode(sys.stdout.encoding)
+
         if ips_list_yml[:3] == "404":
             ips_list_yml = ""
-        if rawcontent_failed or "github.com" not in server:
+        if rawcontent_failed or ("github.com" not in server and "gitlab" not in server):
             if verbose:
                 print("   Fetching ips_list.yml from %s:%s/%s @ %s" % (server, group, name, commit))
             cmd = "git archive --remote=%s:%s/%s %s ips_list.yml" % (server, group, name, commit)
